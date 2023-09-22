@@ -1,5 +1,7 @@
 import streamlit as st
 
+import numpy as np
+
 import latex_formulas
 import codes
 import descriptions
@@ -10,12 +12,16 @@ import constants
 def main():
     st.set_page_config(layout="wide")
     st.sidebar.title('EPR Imaging Toolbox')
-    main_choice = st.sidebar.radio('Menu', ['Data Sample', 'Algebra'])
+    main_choice = st.sidebar.radio('Menu', ['Pre-processing', 'Data Sample', 'Algebra'])
 
     if main_choice == 'Algebra':
         handle_algebra()
-    elif main_choice == 'Data Sample':
+    if main_choice == 'Data Sample':
         handle_data_sample()
+
+    if main_choice == 'Pre-processing':
+        sino, ref, par = handle_load_data()
+        handle_deconvolution(sino, ref, par)
 
 
 def handle_algebra():
@@ -32,7 +38,28 @@ def handle_algebra():
 
 def handle_data_sample():
     st.title("Sample Data")
-    body.sample_data(data_title='3D dataset', data_desc=descriptions.sample_data_3d, filepath=constants.PATH_TO_SAMPLE_DATA)
+    body.sample_data(data_title='3D dataset', data_desc=descriptions.sample_data_3d,
+                     filepath=constants.PATH_TO_SAMPLE_DATA)
+
+
+def handle_load_data():
+    sino, ref, pars = body.load_data()
+    return sino, ref, pars
+
+
+def handle_deconvolution(sino, ref, pars):
+    st.title('Deconvolution')
+    st.write(descriptions.deconvolution)
+    filter_val = st.slider('# Deconvolution filter :', 1, 128, 15)
+    sino_deco = body.deconvolution(sino, ref, filter_val)
+    np.save('Example_data/temp_data/sinogram_deco.npy', sino_deco, allow_pickle=True)
+    with open('Example_data/temp_data/sinogram_deco.npy', 'rb') as f:
+        st.download_button(
+            label='Download sinogram as npy',
+            data=f,
+            file_name='sinogram_after_deconvolution.npy',
+            key='npy'
+        )
 
 
 if __name__ == "__main__":
